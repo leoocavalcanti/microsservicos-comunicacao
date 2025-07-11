@@ -2,12 +2,16 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build: 
+      context: ./payment-service-api
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
       - PAYMENT_METHOD_API_URL=http://payment-method-api:8000
+    volumes:
+      - ./payment-service-api/logs:/app/logs
     depends_on:
       - db
       - payment-method-api

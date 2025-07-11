@@ -1,95 +1,94 @@
-# Microsserviço de Pagamentos
+# Sistema de Pagamentos
 
-Serviço responsável por processar pagamentos utilizando a integração com Stripe.
+Este é um sistema de processamento de pagamentos composto por dois microsserviços:
 
-## Pré-requisitos
+## Estrutura do Projeto
 
-- Node.js 18+
-- Docker e Docker Compose
-- Conta no Stripe (para obter as chaves de API)
+```
+.
+├── payment-service-api/        # API Principal de Pagamentos (Node.js)
+│   ├── src/                   # Código fonte
+│   │   ├── controllers/       # Controladores
+│   │   ├── services/         # Serviços
+│   │   ├── types/           # Tipos e interfaces
+│   │   └── server.ts        # Entrada da aplicação
+│   ├── prisma/              # Configuração e migrações do Prisma
+│   ├── Dockerfile          # Dockerfile da API de pagamentos
+│   ├── package.json       # Dependências
+│   └── tsconfig.json     # Configuração TypeScript
+│
+├── payment-method-api/    # API de Métodos de Pagamento (Python)
+│   ├── api.py           # Código da API FastAPI
+│   ├── Dockerfile      # Dockerfile da API de métodos
+│   └── pyproject.toml # Dependências Python
+│
+└── docker-compose.yml   # Configuração dos serviços
+```
 
-## Configuração
+## Serviços
+
+### 1. API de Pagamentos (payment-service-api)
+- **Tecnologia**: Node.js + TypeScript + Express
+- **Banco de Dados**: PostgreSQL
+- **Porta**: 3000
+- **Responsabilidades**:
+  - Processamento de pagamentos
+  - Gestão de transações
+  - Registro de eventos
+
+### 2. API de Métodos de Pagamento (payment-method-api)
+- **Tecnologia**: Python + FastAPI
+- **Banco de Dados**: PostgreSQL
+- **Porta**: 8000
+- **Responsabilidades**:
+  - CRUD de métodos de pagamento
+  - Validação de cartões
+  - Gestão de dados sensíveis
+
+## Como Executar
 
 1. Clone o repositório
-2. Crie um arquivo `.env` baseado no `.env.example`:
-   ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/pagamento_service?schema=public"
-   STRIPE_SECRET_KEY="sua_chave_secreta_do_stripe"
-   STRIPE_WEBHOOK_SECRET="seu_webhook_secret_do_stripe"
-   PORT=3000
-   ```
-
-3. Instale as dependências:
+2. Execute os serviços:
    ```bash
-   npm install
+   docker-compose up --build
    ```
 
-4. Execute as migrações do banco:
-   ```bash
-   npx prisma migrate dev
-   ```
-
-## Executando com Docker
-
-```bash
-docker-compose up -d
-```
-
-## Endpoints
-
-### POST /api/pagamentos
-Cria uma nova intenção de pagamento.
-
-Payload:
-```json
-{
-  "valor": 100.00,
-  "idMetodoPagamento": 1,
-  "idUsuario": 1,
-  "descricao": "Pagamento de teste"
-}
-```
-
-### POST /api/pagamentos/:id/confirmar
-Confirma um pagamento após processamento no Stripe.
-
-### GET /api/pagamentos
-Lista todos os pagamentos.
-
-### GET /api/pagamentos/:id
-Busca um pagamento específico.
-
-### POST /api/pagamentos/webhook
-Endpoint para receber webhooks do Stripe.
+3. Acesse:
+   - API de Pagamentos: http://localhost:3000
+   - API de Métodos de Pagamento: http://localhost:8000/docs
 
 ## Desenvolvimento
 
-Para rodar em modo desenvolvimento:
-
+### API de Pagamentos
 ```bash
+cd payment-service-api
+npm install
 npm run dev
 ```
 
-## Estrutura do Banco de Dados
+### API de Métodos de Pagamento
+```bash
+cd payment-method-api
+python -m venv .venv
+source .venv/bin/activate  # ou `.venv\Scripts\activate` no Windows
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
 
-### Pagamento
-- Armazena informações do pagamento
-- Relacionamento com eventos e reembolso
+## Bancos de Dados
 
-### PagamentoEvento
-- Registra eventos do ciclo de vida do pagamento
-- Log de todas as interações com Stripe
+O sistema utiliza dois bancos PostgreSQL:
 
-### Reembolso
-- Informações de reembolsos quando aplicável
+1. **Banco Principal** (porta 5432)
+   - Armazena pagamentos e eventos
+   - Usado pela API de Pagamentos
 
-## Integração com Stripe
+2. **Banco de Métodos** (porta 5433)
+   - Armazena dados de cartões
+   - Usado pela API de Métodos de Pagamento
 
-O serviço utiliza o Stripe para processamento de pagamentos. É necessário configurar:
+## Logs
 
-1. Chave secreta do Stripe (`STRIPE_SECRET_KEY`)
-2. Webhook secret para validar eventos (`STRIPE_WEBHOOK_SECRET`)
-
-Para testar em desenvolvimento, use cartões de teste do Stripe:
-- 4242 4242 4242 4242 (Sucesso)
-- 4000 0000 0000 0002 (Recusado) 
+Os logs são armazenados em:
+- `payment-service-api/logs/error.log`: Apenas erros
+- `payment-service-api/logs/combined.log`: Todos os logs 
