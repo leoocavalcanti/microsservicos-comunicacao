@@ -17,9 +17,22 @@ RUN npm install
 
 COPY . .
 
+# Criar script de inicialização
+COPY <<EOF /app/start.sh
+#!/bin/sh
+echo "Recriando banco de dados..."
+npx prisma db push --accept-data-loss
+echo "Gerando cliente Prisma..."
+npx prisma generate
+echo "Iniciando aplicação..."
+npm start
+EOF
+
+RUN chmod +x /app/start.sh
+
 RUN npx prisma generate
 RUN npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "start"] 
+CMD ["/app/start.sh"] 

@@ -65,11 +65,9 @@ export class PagamentoFakeService implements IPagamentoService {
   async confirmarPagamento(paymentId: string): Promise<ResultadoConfirmacao> {
     this.logger.info('Iniciando confirmação de pagamento fake', { paymentId });
 
-    // Simular delay de processamento
     this.logger.debug('Simulando delay de processamento');
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // 90% de chance de sucesso
     const sucesso = Math.random() < 0.9;
     this.logger.debug('Resultado do processamento', { sucesso });
 
@@ -87,11 +85,9 @@ export class PagamentoFakeService implements IPagamentoService {
   async consultarStatus(paymentId: string): Promise<StatusPagamento> {
     this.logger.info('Iniciando consulta de status do pagamento fake', { paymentId });
 
-    // Simular delay de consulta
     this.logger.debug('Simulando delay de consulta');
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // Status aleatório para demonstração
     const statusPossiveis = Object.values(StatusPagamentoEnum);
     const statusAleatorio = statusPossiveis[Math.floor(Math.random() * statusPossiveis.length)];
 

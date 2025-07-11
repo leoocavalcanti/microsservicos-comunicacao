@@ -3,7 +3,6 @@ import winston from 'winston';
 
 const { combine, timestamp, printf } = winston.format;
 
-// Formato personalizado para os logs
 const customFormat = printf((info) => {
   const { level, message, timestamp, ...metadata } = info;
   
@@ -15,7 +14,6 @@ const customFormat = printf((info) => {
   return `[${timestamp}] [${level.toUpperCase()}]: ${message}${metadataStr}`;
 });
 
-// Configuração do logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: combine(
@@ -42,7 +40,6 @@ interface ContextLogger {
   debug(message: string, metadata?: object): void;
 }
 
-// Função para criar um logger com contexto
 export function createLogger(context: string): ContextLogger {
   return {
     error: (message: string, metadata: object = {}) => {
@@ -63,7 +60,6 @@ export function createLogger(context: string): ContextLogger {
   };
 }
 
-// Middleware para logs de requisições HTTP
 export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();
   res.on('finish', () => {

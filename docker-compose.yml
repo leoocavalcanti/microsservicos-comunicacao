@@ -1,29 +1,32 @@
 version: '3.8'
 
 services:
-  app:
+  payment-service-app:
     build: 
       context: ./payment-service-api
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
-      - PAYMENT_METHOD_API_URL=http://payment-method-api:8000
+      - DATABASE_URL=postgresql://postgres:password@payment-service-db:5432/postgres
+      - PAYMENT_METHOD_API_URL=http://payment-method-app:8000
     volumes:
       - ./payment-service-api/logs:/app/logs
     depends_on:
-      - db
-      - payment-method-api
+      payment-service-db:
+        condition: service_healthy
+      payment-method-app:
+        condition: service_started
 
-  payment-method-api:
+  payment-method-app:
     build: ./payment-method-api
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg://postgres:password@payment-method-db:5432/postgres
     depends_on:
-      - payment-method-db
+      payment-method-db:
+        condition: service_healthy
 
   payment-method-db:
     image: postgres:latest
@@ -34,9 +37,14 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - payment_method_db_data:/var/lib/postgresql/data
+      - ./payment-method-api/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  db:
+  payment-service-db:
     image: postgres:latest
     environment:
       POSTGRES_USER: postgres
@@ -45,8 +53,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
-
-volumes:
-  db_data:
-  payment_method_db_data: 
+      - ./payment-service-api/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 

@@ -9,9 +9,7 @@ datasource db {
 
 model Pagamento {
   id                String           @id @default(uuid())
-  valor             Decimal          @db.Decimal(10, 2)7. Substituição do Serviço Fake
-  Para substituir o serviço fake por um gateway real:
-  
+  valor             Decimal          @db.Decimal(10, 2)
   moeda             String           @default("BRL")
   status            String           @default("pendente") // pendente, aprovado, recusado
   idMetodoPagamento String
