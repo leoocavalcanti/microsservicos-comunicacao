@@ -118,6 +118,20 @@ export class PagamentoFacade {
     });
   }
 
+  async listarPagamentosPorUsuario(idUsuario: string): Promise<any[]> {
+    return this.prisma.pagamento.findMany({
+      where: {
+        idUsuario
+      },
+      include: {
+        eventos: true
+      },
+      orderBy: {
+        criadoEm: 'desc'
+      }
+    });
+  }
+
   async buscarPagamentoPorId(id: string): Promise<{
     pagamento: any;
     status_atual: StatusPagamento;

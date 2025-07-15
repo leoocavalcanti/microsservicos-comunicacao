@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import create_model, ValidationError
 from sqlmodel import SQLModel, Field, create_engine, select, Session
 from contextlib import asynccontextmanager
+from consul_service import ConsulService
 
 def patch(model: type[SQLModel]) -> type[SQLModel]:
     fields = model.model_fields.copy()
@@ -36,10 +37,10 @@ class PaymentMethod(PaymentMethodCreate, table=True):
     uuid: UUID = Field(default_factory=uuid4, primary_key=True, index=True, description="Unique identifier for the payment method")
 
 
-
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
 engine = create_engine(DATABASE_URL, echo=False)
 
+consul_service = ConsulService()
 
 def get_session():
     with Session(engine) as session:
@@ -49,12 +50,19 @@ def get_session():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
+    consul_service.register()
     yield
+    consul_service.deregister()
 
 
 app = FastAPI(
     title="Payment Method API", description="API for managing payment methods", version="1.0.0", lifespan=lifespan
 )
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "UP"}
 
 
 @app.post("/payment_method", response_model=PaymentMethod, status_code=status.HTTP_201_CREATED)

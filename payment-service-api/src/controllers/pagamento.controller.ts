@@ -184,4 +184,78 @@ export class PagamentoController {
         .json({ erro: 'Erro ao buscar pagamento' });
     }
   }
+
+  /**
+   * @swagger
+   * /api/pagamentos/usuario/{idUsuario}:
+   *   get:
+   *     summary: Lista todos os pagamentos de um usuário
+   *     tags: [Pagamentos]
+   *     parameters:
+   *       - in: path
+   *         name: idUsuario
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: ID do usuário (UUID)
+   *     responses:
+   *       200:
+   *         description: Lista de pagamentos do usuário
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: array
+   *               items:
+   *                 type: object
+   *                 properties:
+   *                   id:
+   *                     type: string
+   *                   valor:
+   *                     type: number
+   *                   status:
+   *                     type: string
+   *                   descricao:
+   *                     type: string
+   *                   criadoEm:
+   *                     type: string
+   *                     format: date-time
+   *                   eventos:
+   *                     type: array
+   *                     items:
+   *                       type: object
+   *       404:
+   *         description: Nenhum pagamento encontrado para o usuário
+   *       500:
+   *         description: Erro ao buscar pagamentos
+   */
+  async listarPagamentosPorUsuario(req: Request, res: Response): Promise<void> {
+    try {
+      const { idUsuario } = req.params;
+      this.logger.info('Listando pagamentos por usuário', { idUsuario });
+      const pagamentos = await this.pagamentoFacade.listarPagamentosPorUsuario(idUsuario);
+      
+      if (!pagamentos.length) {
+        this.logger.info('Nenhum pagamento encontrado para o usuário', { idUsuario });
+        res.status(404).json({ mensagem: 'Nenhum pagamento encontrado para este usuário' });
+        return;
+      }
+
+      this.logger.info('Pagamentos listados com sucesso', { 
+        idUsuario, 
+        quantidade: pagamentos.length 
+      });
+      res.json(pagamentos);
+    } catch (error) {
+      this.logger.error('Erro ao listar pagamentos do usuário', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined,
+        idUsuario: req.params.idUsuario
+      });
+      res.status(500).json({ 
+        erro: 'Erro ao listar pagamentos',
+        detalhes: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  }
 } 

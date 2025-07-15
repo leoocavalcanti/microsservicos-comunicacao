@@ -1,16 +1,15 @@
-import dotenv from 'dotenv';
+import cors from 'cors';
 import express from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
+import healthRoutes from './routes/health.routes';
 import pagamentoRoutes from './routes/pagamento.routes';
 import { DiscoveryService } from './services/discovery.service';
-import { createLogger, requestLogger } from './services/logger.service';
+import { createLogger } from './services/logger.service';
 
-dotenv.config();
-
-const logger = createLogger('Server');
 const app = express();
-const port = parseInt(process.env.PORT || '3000', 10);
+const logger = createLogger('App');
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Configuração do Swagger
 const swaggerOptions = {
@@ -19,25 +18,22 @@ const swaggerOptions = {
     info: {
       title: 'API de Pagamentos',
       version: '1.0.0',
-      description: 'API para processamento de pagamentos',
+      description: 'API para gerenciamento de pagamentos',
     },
-    servers: [
-      {
-        url: `http://localhost:${port}`,
-        description: 'Servidor de Desenvolvimento',
-      },
-    ],
   },
-  apis: ['./src/routes/*.ts', './src/controllers/*.ts'], // arquivos para gerar documentação
+  apis: ['./src/controllers/*.ts'], // Arquivos com anotações do Swagger
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(requestLogger);
+app.use(cors());
 app.use(express.json());
 
+// Documentação Swagger
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Rotas da API
+app.use('/', healthRoutes);
 app.use('/api/pagamentos', pagamentoRoutes);
 
 const startServer = async () => {
@@ -46,12 +42,8 @@ const startServer = async () => {
     await discoveryService.register(port);
     
     app.listen(port, () => {
-      logger.info(`Servidor rodando na porta ${port}`, {
-        port,
-        environment: process.env.NODE_ENV || 'development',
-        version: process.env.npm_package_version
-      });
-      logger.info(`Documentação Swagger disponível em http://localhost:${port}/docs`);
+      logger.info(`Servidor iniciado na porta ${port}`);
+      logger.info(`Documentação Swagger disponível em http://localhost:${port}/api-docs`);
     });
   } catch (error) {
     logger.error('Erro ao iniciar servidor', {

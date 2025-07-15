@@ -32,17 +32,14 @@ export class PagamentoFakeService implements IPagamentoService {
     const { valor, metodoPagamento } = params;
     this.logger.info('Iniciando processamento de pagamento fake', { valor, metodoPagamento });
 
-    // Simular delay de processamento
     this.logger.debug('Simulando delay de processamento');
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Identificar o tipo de cartão baseado no número
     const cartaoTeste = Object.values(PagamentoFakeService.CARTOES_TESTE)
       .find(cartao => cartao.numero === metodoPagamento.card_number) || PagamentoFakeService.CARTOES_TESTE.SUCESSO;
 
     this.logger.debug('Cartão de teste identificado', { cartaoTeste });
 
-    // Gerar ID único para o pagamento
     const paymentId = 'pay_' + Math.random().toString(36).substr(2, 9);
 
     const resultado = {

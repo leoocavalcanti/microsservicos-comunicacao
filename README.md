@@ -69,7 +69,7 @@ O sistema é composto por 4 containers Docker:
    - API de métodos de pagamento (Python)
    - Gerencia cartões e dados sensíveis
 
-3. **payment-service-db** (porta 5432)
+3. **payment-service-db** (porta 5435)
    - Banco PostgreSQL para pagamentos
    - Dados persistidos em `payment-service-api/data/`
 
@@ -81,7 +81,7 @@ O sistema é composto por 4 containers Docker:
 
 O sistema utiliza dois bancos PostgreSQL que são recriados a cada inicialização:
 
-1. **payment-service-db** (porta 5432)
+1. **payment-service-db** (porta 5435)
    - Armazena pagamentos e eventos
    - Usado pela API de Pagamentos
    - Schema gerenciado pelo Prisma
@@ -220,6 +220,59 @@ curl http://localhost:3000/api/pagamentos/PAYMENT_ID  # ID retornado pela API No
    - Processar o pagamento
    - Simular confirmação (em ambiente de desenvolvimento)
    - Consultar o status
+
+## Fluxo de Pagamento
+
+O processamento de um pagamento segue estas etapas:
+
+1. **Criar Pagamento** (POST /api/pagamentos)
+   ```bash
+   curl -X POST http://localhost:3000/api/pagamentos \
+     -H "Content-Type: application/json" \
+     -d '{
+       "valor": 100.50,
+       "idMetodoPagamento": "METHOD_ID",
+       "idUsuario": "USER_ID",
+       "descricao": "Compra de produto"
+     }'
+   ```
+   - Valida o método de pagamento
+   - Cria o pagamento com status "pendente"
+   - Retorna o ID do pagamento
+
+2. **Processar Pagamento** (POST /api/pagamentos/processar)
+   ```bash
+   curl -X POST http://localhost:3000/api/pagamentos/processar \
+     -H "Content-Type: application/json" \
+     -d '{
+       "idPagamento": "PAYMENT_ID"
+     }'
+   ```
+   - Confirma o pagamento com o serviço de pagamento
+   - Atualiza o status para "aprovado" ou "recusado"
+   - Registra o evento de confirmação
+
+3. **Consultar Status** (GET /api/pagamentos/PAYMENT_ID)
+   ```bash
+   curl http://localhost:3000/api/pagamentos/PAYMENT_ID
+   ```
+   - Retorna o status atual do pagamento
+   - Inclui histórico de eventos
+
+### Estados do Pagamento
+
+- **pendente**: Pagamento criado mas não processado
+- **aprovado**: Pagamento processado com sucesso
+- **recusado**: Pagamento processado mas não aprovado
+
+### Ambiente de Testes
+
+Para testes, o sistema usa um serviço fake que simula diferentes respostas baseado no número do cartão:
+
+- **4242424242424242**: Sempre aprova
+- **4000000000000002**: Sempre recusa
+- **4000000000000044**: Fica pendente
+- Outros números: Aprova por padrão
 
 ## Logs
 

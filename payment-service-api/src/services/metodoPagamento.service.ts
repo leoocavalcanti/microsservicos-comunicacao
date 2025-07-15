@@ -1,22 +1,34 @@
 import axios from 'axios';
 import { MetodoPagamento } from '../types/pagamento.types';
+import { DiscoveryService } from './discovery.service';
 import { createLogger } from './logger.service';
 
 export class MetodoPagamentoService {
-  private readonly apiUrl: string;
   private readonly logger = createLogger('MetodoPagamentoService');
+  private readonly discoveryService: DiscoveryService;
 
   constructor() {
-    this.apiUrl = process.env.PAYMENT_METHOD_API_URL || 'http://localhost:8000';
-    this.logger.info('API URL configurada', { apiUrl: this.apiUrl });
+    this.discoveryService = new DiscoveryService();
+    this.logger.info('Serviço de Método de Pagamento iniciado');
+  }
+
+  private async getPaymentMethodServiceUrl(): Promise<string> {
+    const serviceUrl = await this.discoveryService.getServiceAddress('payment-method');
+    if (!serviceUrl) {
+      throw new Error('Serviço de método de pagamento não encontrado no service discovery');
+    }
+    return serviceUrl;
   }
 
   async listarMetodosPagamento(userId: string): Promise<MetodoPagamento[]> {
     try {
       this.logger.info('Iniciando busca de métodos de pagamento', { userId });
-      this.logger.debug('URL completa', { url: `${this.apiUrl}/payment_method?user=${userId}` });
       
-      const response = await axios.get<MetodoPagamento[]>(`${this.apiUrl}/payment_method`, {
+      const serviceUrl = await this.getPaymentMethodServiceUrl();
+      const url = `${serviceUrl}/payment_method`;
+      this.logger.debug('URL completa', { url });
+      
+      const response = await axios.get<MetodoPagamento[]>(url, {
         params: { user: userId }
       });
       
@@ -86,7 +98,11 @@ export class MetodoPagamentoService {
   async criarMetodoPagamento(dadosMetodoPagamento: Partial<MetodoPagamento>): Promise<MetodoPagamento> {
     try {
       this.logger.info('Iniciando criação de método de pagamento', { dadosMetodoPagamento });
-      const response = await axios.post<MetodoPagamento>(`${this.apiUrl}/payment_method`, dadosMetodoPagamento);
+      
+      const serviceUrl = await this.getPaymentMethodServiceUrl();
+      const url = `${serviceUrl}/payment_method`;
+      
+      const response = await axios.post<MetodoPagamento>(url, dadosMetodoPagamento);
       this.logger.info('Método de pagamento criado com sucesso', { metodoPagamento: response.data });
       return response.data;
     } catch (error) {
@@ -106,7 +122,11 @@ export class MetodoPagamentoService {
         paymentMethodId,
         dadosAtualizacao
       });
-      const response = await axios.patch<MetodoPagamento>(`${this.apiUrl}/payment_method`, dadosAtualizacao, {
+      
+      const serviceUrl = await this.getPaymentMethodServiceUrl();
+      const url = `${serviceUrl}/payment_method`;
+      
+      const response = await axios.patch<MetodoPagamento>(url, dadosAtualizacao, {
         params: { user: userId, uuid: paymentMethodId }
       });
       this.logger.info('Método de pagamento atualizado com sucesso', { metodoPagamento: response.data });
@@ -126,7 +146,11 @@ export class MetodoPagamentoService {
   async deletarMetodoPagamento(userId: string, paymentMethodId: string): Promise<boolean> {
     try {
       this.logger.info('Iniciando exclusão de método de pagamento', { userId, paymentMethodId });
-      await axios.delete(`${this.apiUrl}/payment_method`, {
+      
+      const serviceUrl = await this.getPaymentMethodServiceUrl();
+      const url = `${serviceUrl}/payment_method`;
+      
+      await axios.delete(url, {
         params: { user: userId, uuid: paymentMethodId }
       });
       this.logger.info('Método de pagamento excluído com sucesso', { userId, paymentMethodId });

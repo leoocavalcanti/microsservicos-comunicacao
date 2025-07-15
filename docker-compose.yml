@@ -1,35 +1,130 @@
 version: '3.8'
 
 services:
+  # Service Discovery
+  consul:
+    image: hashicorp/consul:1.15
+    container_name: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: "agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0"
+    volumes:
+      - consul-data:/consul/data
+    networks:
+      - microservices-network
+
+  # API Gateway
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.consul.endpoints=consul:8500"
+      - "--providers.consul.rootKey=traefik"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - consul
+    networks:
+      - microservices-network
+
+  # Payment Service
   payment-service-app:
     build: 
       context: ./payment-service-api
       dockerfile: Dockerfile
+    container_name: payment-service
+    hostname: payment-service
     ports:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:password@payment-service-db:5432/postgres
-      - PAYMENT_METHOD_API_URL=http://payment-method-app:8000
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=payment-service
+      - HOSTNAME=payment-service
     volumes:
       - ./payment-service-api/logs:/app/logs
     depends_on:
       payment-service-db:
         condition: service_healthy
-      payment-method-app:
+      consul:
         condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-service.rule=PathPrefix(`/payment-service`)"
+      - "traefik.http.services.payment-service.loadbalancer.server.port=3000"
+    networks:
+      - microservices-network
 
+  # Payment Method Service
   payment-method-app:
     build: ./payment-method-api
+    container_name: payment-method
+    hostname: payment-method
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg://postgres:password@payment-method-db:5432/postgres
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=payment-method
+      - HOSTNAME=payment-method
     depends_on:
       payment-method-db:
         condition: service_healthy
+      consul:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-method.rule=PathPrefix(`/payment-method`)"
+      - "traefik.http.services.payment-method.loadbalancer.server.port=8000"
+    networks:
+      - microservices-network
 
+  # Payment Bank Service
+  payment-bank-app:
+    build:
+      context: ./payment-bank-api
+      dockerfile: Dockerfile
+    container_name: payment-bank
+    hostname: payment-bank
+    ports:
+      - "8001:8000"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
+      POSTGRES_DB: "${POSTGRES_DB:-postgres}"
+      POSTGRES_HOST: "payment-bank-db"
+      POSTGRES_PORT: "5432"
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      SERVICE_NAME: payment-bank
+      PROJECT_NAME: "Payment Bank API"
+      POSTGRES_SERVER: "payment-bank-db"
+      HOSTNAME: payment-bank
+    depends_on:
+      payment-bank-db:
+        condition: service_healthy
+      consul:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-bank.rule=PathPrefix(`/payment-bank`)"
+      - "traefik.http.services.payment-bank.loadbalancer.server.port=8000"
+    networks:
+      - microservices-network
+
+  # Databases
   payment-method-db:
-    image: postgres:latest
+    image: postgres:15-alpine
+    container_name: payment-method-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -37,25 +132,59 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./payment-method-api/data:/var/lib/postgresql/data
+      - payment-method-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-network
 
   payment-service-db:
-    image: postgres:latest
+    image: postgres:15-alpine
+    container_name: payment-service-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
-      - ./payment-service-api/data:/var/lib/postgresql/data
+      - payment-service-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5 
+      retries: 5
+    networks:
+      - microservices-network
+
+  payment-bank-db:
+    image: postgres:15-alpine
+    container_name: payment-bank-db
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
+      POSTGRES_DB: "${POSTGRES_DB:-postgres}"
+    ports:
+      - "5435:5432"
+    volumes:
+      - payment-bank-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  consul-data:
+  payment-method-data:
+  payment-service-data:
+  payment-bank-data: 

@@ -4,7 +4,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY api.py pyproject.toml uv.lock ./
+COPY api.py consul_service.py pyproject.toml uv.lock ./
 
 RUN uv sync --extra prod
 
