@@ -59,6 +59,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.payment-service.rule=PathPrefix(`/payment-service`)"
+      - "traefik.http.middlewares.payment-service-strip.stripprefix.prefixes=/payment-service"
+      - "traefik.http.routers.payment-service.middlewares=payment-service-strip@docker"
       - "traefik.http.services.payment-service.loadbalancer.server.port=3000"
     networks:
       - microservices-network
