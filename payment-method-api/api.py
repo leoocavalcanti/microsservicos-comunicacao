@@ -1,8 +1,10 @@
 from typing import Optional
+from enum import StrEnum
 from uuid import UUID, uuid4
 import os
 
 from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import create_model, ValidationError
 from sqlmodel import SQLModel, Field, create_engine, select, Session
 from contextlib import asynccontextmanager
@@ -20,6 +22,10 @@ def patch(model: type[SQLModel]) -> type[SQLModel]:
     )
 
 class PaymentMethodBase(SQLModel):
+    class PaymentType(StrEnum):
+        CREDIT = "credit"
+        DEBIT = "debit"
+    payment_type: PaymentType = Field(description="Type of payment method")
     owner_name: str = Field(max_length=100, description="Name of the card owner")
     card_number: str = Field(min_length=16, max_length=16, description="16-digit card number", schema_extra=dict(pattern=r"\d{16}"))
     expiration_date: str = Field(min_length=7, max_length=7, description="MM/YYYY format", schema_extra=dict(pattern=r"\d{2}/\d{4}"))
@@ -58,11 +64,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Payment Method API", description="API for managing payment methods", version="1.0.0", lifespan=lifespan
 )
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "UP"}
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/payment_method", response_model=PaymentMethod, status_code=status.HTTP_201_CREATED)
