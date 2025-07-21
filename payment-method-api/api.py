@@ -10,26 +10,32 @@ from sqlmodel import SQLModel, Field, create_engine, select, Session
 from contextlib import asynccontextmanager
 from consul_service import ConsulService
 
+
 def patch(model: type[SQLModel]) -> type[SQLModel]:
     fields = model.model_fields.copy()
     for f in fields.values():
         f.required = False
         f.default = None
 
-    return create_model(
-        f"{model.__name__}Optional",
-        **{n: (Optional[f.annotation], f) for n, f in fields.items()}
-    )
+    return create_model(f"{model.__name__}Optional", **{n: (Optional[f.annotation], f) for n, f in fields.items()})
+
 
 class PaymentMethodBase(SQLModel):
     class PaymentType(StrEnum):
         CREDIT = "credit"
         DEBIT = "debit"
+
     payment_type: PaymentType = Field(description="Type of payment method")
     owner_name: str = Field(max_length=100, description="Name of the card owner")
-    card_number: str = Field(min_length=16, max_length=16, description="16-digit card number", schema_extra=dict(pattern=r"\d{16}"))
-    expiration_date: str = Field(min_length=7, max_length=7, description="MM/YYYY format", schema_extra=dict(pattern=r"\d{2}/\d{4}"))
-    security_code: str = Field(min_length=3, max_length=3, description="3-digit security code", schema_extra=dict(pattern=r"\d{3}"))
+    card_number: str = Field(
+        min_length=16, max_length=16, description="16-digit card number", schema_extra=dict(pattern=r"\d{16}")
+    )
+    expiration_date: str = Field(
+        min_length=7, max_length=7, description="MM/YYYY format", schema_extra=dict(pattern=r"\d{2}/\d{4}")
+    )
+    security_code: str = Field(
+        min_length=3, max_length=3, description="3-digit security code", schema_extra=dict(pattern=r"\d{3}")
+    )
 
 
 class PaymentMethodCreate(PaymentMethodBase):
@@ -39,14 +45,18 @@ class PaymentMethodCreate(PaymentMethodBase):
 class PaymentMethodPatch(patch(PaymentMethodBase)):
     pass
 
+
 class PaymentMethod(PaymentMethodCreate, table=True):
-    uuid: UUID = Field(default_factory=uuid4, primary_key=True, index=True, description="Unique identifier for the payment method")
+    uuid: UUID = Field(
+        default_factory=uuid4, primary_key=True, index=True, description="Unique identifier for the payment method"
+    )
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
 engine = create_engine(DATABASE_URL, echo=False)
 
 consul_service = ConsulService()
+
 
 def get_session():
     with Session(engine) as session:
@@ -62,7 +72,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Payment Method API", description="API for managing payment methods", version="1.0.0", lifespan=lifespan
+    title="Payment Method API",
+    description="API for managing payment methods",
+    version="1.0.0",
+    lifespan=lifespan,
+    root_path="/" + os.getenv("HOSTNAME", "payment-method"),
+    root_path_in_servers=False,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -71,6 +86,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "UP"}
 
 
 @app.post("/payment_method", response_model=PaymentMethod, status_code=status.HTTP_201_CREATED)
