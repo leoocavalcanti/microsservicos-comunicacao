@@ -1,15 +1,17 @@
-from typing import Optional
-from enum import StrEnum
-from uuid import UUID, uuid4
 import os
-
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import create_model, ValidationError
-from sqlmodel import SQLModel, Field, create_engine, select, Session
 from contextlib import asynccontextmanager
-from consul_service import ConsulService
+from enum import StrEnum
+from typing import Optional
+from uuid import UUID, uuid4
 
+from consul import Consul
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError, create_model
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
+HOST = os.getenv('HOSTNAME', 'localhost')
+PORT = os.getenv('PORT', '8000')
 
 def patch(model: type[SQLModel]) -> type[SQLModel]:
     fields = model.model_fields.copy()
@@ -55,8 +57,6 @@ class PaymentMethod(PaymentMethodCreate, table=True):
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
 engine = create_engine(DATABASE_URL, echo=False)
 
-consul_service = ConsulService()
-
 
 def get_session():
     with Session(engine) as session:
@@ -66,9 +66,30 @@ def get_session():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
-    consul_service.register()
+    consul = Consul(
+        host=os.getenv("CONSUL_HOST", "localhost"),
+        port=int(os.getenv("CONSUL_PORT", "8500")),
+    )
+    service_name = os.getenv("SERVICE_NAME", "payment-method")
+    service_id = f"{service_name}-{os.getpid()}"
+    service_port = int(os.getenv("PORT", "8000"))
+    container_name = os.getenv("HOSTNAME", "localhost")
+    consul.agent.service.register(
+        name=service_name,
+        service_id=service_id,
+        address=container_name,
+        port=service_port,
+        tags=[
+            "traefik.enable=true",
+            "traefik.http.routers.payment-method.rule=PathPrefix(`/payment-method`)",
+            "traefik.http.middlewares.payment-method-strip.stripprefix.prefixes=/payment-method",
+            "traefik.http.routers.payment-method.middlewares=payment-method-strip",
+            "traefik.http.services.payment-method.loadbalancer.server.port=8000",
+        ],
+        check={"http": f"http://{container_name}:{service_port}/health", "interval": "10s", "timeout": "5s"},
+    )
     yield
-    consul_service.deregister()
+    consul.agent.service.deregister(service_id)
 
 
 app = FastAPI(

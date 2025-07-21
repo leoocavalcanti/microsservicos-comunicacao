@@ -1,5 +1,5 @@
 [project]
-name = "ufrpe-apsoo-card-bank-crud"
+name = "payment-method-api"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
