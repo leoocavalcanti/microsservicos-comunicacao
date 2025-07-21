@@ -92,39 +92,6 @@ services:
     networks:
       - microservices-network
 
-  # Payment Bank Service
-  payment-bank-app:
-    build:
-      context: ./payment-bank-api
-      dockerfile: Dockerfile
-    container_name: payment-bank
-    hostname: payment-bank
-    ports:
-      - "8001:8000"
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
-      POSTGRES_DB: "${POSTGRES_DB:-postgres}"
-      POSTGRES_HOST: "payment-bank-db"
-      POSTGRES_PORT: "5432"
-      CONSUL_HOST: consul
-      CONSUL_PORT: 8500
-      SERVICE_NAME: payment-bank
-      PROJECT_NAME: "Payment Bank API"
-      POSTGRES_SERVER: "payment-bank-db"
-      HOSTNAME: payment-bank
-    depends_on:
-      payment-bank-db:
-        condition: service_healthy
-      consul:
-        condition: service_started
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.payment-bank.rule=PathPrefix(`/payment-bank`)"
-      - "traefik.http.services.payment-bank.loadbalancer.server.port=8000"
-    networks:
-      - microservices-network
-
   # Databases
   payment-method-db:
     image: postgres:15-alpine
@@ -164,25 +131,6 @@ services:
     networks:
       - microservices-network
 
-  payment-bank-db:
-    image: postgres:15-alpine
-    container_name: payment-bank-db
-    environment:
-      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-password}"
-      POSTGRES_DB: "${POSTGRES_DB:-postgres}"
-    ports:
-      - "5435:5432"
-    volumes:
-      - payment-bank-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - microservices-network
-
 networks:
   microservices-network:
     driver: bridge
@@ -191,4 +139,3 @@ volumes:
   consul-data:
   payment-method-data:
   payment-service-data:
-  payment-bank-data: 
