@@ -1,6 +1,47 @@
 # Sistema de Pagamentos
 
 Este é um sistema de processamento de pagamentos composto por dois microsserviços:
+- Micro-serviço de Pagamentos
+- Micro-serviço de CRUD de Métodos de Pagamento
+
+## Inicialização e Funcionamento
+Os micro-serviços se registram no discovery, então o gateway, encontra e roteia os serviços para sistemas externos.
+```mermaid
+flowchart LR
+  discovery["Service Discovery (Consul)"]
+  gateway["Gateway (Traefik)"]
+  payment-service["API de Serviço de Pagamentos (Node.js)"]
+  payment-method["Serviço de CRUD de Métodos de Pagamentos (Python)"]
+  external["Sistemas Externos"]
+  
+  external <-. Entrada externa .-> gateway
+  subgraph Sistema de Pagamentos
+    gateway -. "2 Descobre Serviços" .-> discovery
+    gateway -. "3 Roteia" .-> payment-service
+    gateway -. "3 Roteia" .-> payment-method
+    payment-service -. "1 Registra" .-> discovery
+    payment-method -. "1 Registra" .-> discovery
+  end
+```
+
+## Comunicação entre Micro-Serviços
+```mermaid
+flowchart TB
+  gateway["Gateway (Traefik)"]
+  discovery["Service Discovery (Consul)"]
+  payment-service["API de Serviço de Pagamentos (Node.js)"]
+  payment-method["Serviço de CRUD de Métodos de Pagamentos (Python)"]
+  
+  subgraph Comunicação Interna
+  direction TB
+    gateway <-.-> discovery
+    payment-service -- Consulta endereço do serviço --> discovery
+    discovery -- Retorna endpoint --> payment-service
+    payment-service -- Requisição HTTP (ex: listar métodos de pagamento do usuário) --> payment-method
+  end
+```
+
+
 
 ## Estrutura do Projeto
 
