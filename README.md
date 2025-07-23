@@ -26,6 +26,25 @@ Versão do Documento:
 Data:
 23 de julho de 2025
 
+## Introdução
+Com o avanço das tecnologias de pagamento digital e a crescente demanda por soluções integradas, seguras e escaláveis, torna-se essencial o desenvolvimento de sistemas modernos e distribuídos que ofereçam uma arquitetura robusta e modular. Este documento apresenta a documentação técnica do Serviço de Pagamentos, um sistema construído com base nos princípios da orientação a objetos e em padrões de projeto, como Facade, Service e Repository.
+
+O projeto foi desenvolvido como parte das atividades da disciplina Análise e Projeto de Sistemas Orientados a Objetos, ministrada pelo professor Lucas Albertins, com o objetivo de aplicar os conceitos teóricos em um contexto prático e realista de desenvolvimento de software.
+
+## Objetivo
+O objetivo principal deste projeto é implementar um sistema de pagamentos baseado em microsserviços, que permita:
+
+Gerenciar métodos de pagamento (como cartões de crédito) de forma segura;
+
+Criar, processar e acompanhar pagamentos realizados por usuários;
+
+Promover a separação de responsabilidades entre os componentes;
+
+Garantir escalabilidade e manutenibilidade utilizando boas práticas de projeto e arquitetura;
+
+Permitir fácil integração com sistemas externos por meio de APIs RESTful documentadas.
+
+Este documento visa detalhar toda a estrutura do sistema, sua arquitetura, os padrões utilizados, instruções de execução e exemplos de uso, servindo como guia técnico para desenvolvedores e demais interessados no funcionamento e manutenção da solução proposta.
 
 
 # Sistema de Pagamentos
