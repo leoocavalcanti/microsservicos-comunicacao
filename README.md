@@ -4,6 +4,40 @@ Este é um sistema de processamento de pagamentos composto por dois microsservi�
 - Micro-serviço de Pagamentos
 - Micro-serviço de CRUD de Métodos de Pagamento
 
+## O sistema é composto por 4 componentes principais:
+API Node.js (Pagamento Service)
+Porta: 3000
+Tecnologias: TypeScript, Express, Prisma
+Banco: PostgreSQL (porta 5432)
+API Python (Métodos de Pagamento)
+Porta: 8000
+Tecnologias: FastAPI, SQLModel
+Banco: PostgreSQL (porta 5433)
+Banco de Dados Principal
+PostgreSQL para API Node.js
+Armazena pagamentos e eventos
+Banco de Dados de Métodos de Pagamento
+PostgreSQL para API Python
+Armazena dados dos cartões
+
+## Padrões Utilizados:
+Facade Pattern (PagamentoFacade)
+Centraliza operações de pagamento
+Coordena diferentes serviços
+Gerencia transações
+Service Pattern
+MetodoPagamentoService: Integração com API Python
+PagamentoFakeService: Processamento de pagamentos
+Serviços independentes e substituíveis
+Repository Pattern (via Prisma)
+Abstração do banco de dados
+Queries tipadas e seguras
+Controller Pattern
+Manipulação de requisições HTTP
+Validação de entrada
+Tratamento de erros
+
+
 ## Inicialização e Funcionamento
 Os micro-serviços se registram no discovery, então o gateway, encontra e roteia os serviços para sistemas externos.
 ```mermaid
