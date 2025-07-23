@@ -31,11 +31,20 @@ export class DiscoveryService {
 
   async register(port: number): Promise<void> {
     try {
+      const tags = [
+        'traefik.enable=true',
+        `traefik.http.routers.${this.serviceName}.rule=PathPrefix(\`/${this.serviceName}\`)`,
+        `traefik.http.middlewares.${this.serviceName}-strip.stripprefix.prefixes=/${this.serviceName}`,
+        `traefik.http.routers.${this.serviceName}.middlewares=${this.serviceName}-strip`,
+        `traefik.http.services.${this.serviceName}.loadbalancer.server.port=${port}`,
+      ];
+
       await this.consul.agent.service.register({
         id: this.serviceId,
         name: this.serviceName,
         address: process.env.HOSTNAME || 'localhost',
         port,
+        tags,
         check: {
           http: `http://${process.env.HOSTNAME || 'localhost'}:${port}/health`,
           interval: '10s',

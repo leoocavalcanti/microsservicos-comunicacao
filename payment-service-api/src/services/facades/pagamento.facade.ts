@@ -48,7 +48,7 @@ export class PagamentoFacade {
         idMetodoPagamento: dados.idMetodoPagamento,
         idUsuario: dados.idUsuario,
         descricao: dados.descricao,
-        status: resultadoPagamento.status,
+        status: 'pendente',
         eventos: {
           create: {
             tipo: 'pagamento.criado',
@@ -60,52 +60,13 @@ export class PagamentoFacade {
 
     return {
       pagamentoId: pagamento.id,
-      status: resultadoPagamento.status,
-      mensagem: resultadoPagamento.mensagem,
+      status: pagamento.status,
+      mensagem: "Pagamento criado com sucesso. Status inicial: pendente.",
       detalhes: resultadoPagamento.detalhes
     };
   }
 
-  async processarPagamento(dados: ProcessarPagamentoDTO): Promise<{
-    status: string;
-    mensagem: string;
-    pagamento: any;
-  }> {
-    // Buscar o pagamento no banco de dados
-    const pagamento = await this.prisma.pagamento.findFirst({
-      where: {
-        id: dados.paymentId,
-        idUsuario: dados.idUsuario
-      }
-    });
-
-    if (!pagamento) {
-      throw new Error('Pagamento não encontrado');
-    }
-
-    // Confirmar pagamento usando o serviço fake
-    const resultadoConfirmacao = await this.pagamentoService.confirmarPagamento(dados.paymentId);
-
-    // Atualizar status no banco
-    const pagamentoAtualizado = await this.prisma.pagamento.update({
-      where: { id: dados.paymentId },
-      data: {
-        status: resultadoConfirmacao.status,
-        eventos: {
-          create: {
-            tipo: 'pagamento.confirmado',
-            conteudoJson: JSON.stringify(resultadoConfirmacao)
-          }
-        }
-      }
-    });
-
-    return {
-      status: resultadoConfirmacao.status,
-      mensagem: resultadoConfirmacao.mensagem,
-      pagamento: pagamentoAtualizado
-    };
-  }
+  
 
   async listarPagamentos(): Promise<any[]> {
     return this.prisma.pagamento.findMany({
@@ -156,38 +117,59 @@ export class PagamentoFacade {
     };
   }
 
-  async simularConfirmacaoPagamento(id: string): Promise<{
-    mensagem: string;
-    resultado: ResultadoConfirmacao;
-  }> {
+  async aprovarPagamento(id: string): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const pagamento = await this.prisma.pagamento.findUnique({
+            where: { id },
+          });
+
+          if (!pagamento) {
+            throw new Error('Pagamento não encontrado');
+          }
+
+          const pagamentoAtualizado = await this.prisma.pagamento.update({
+            where: { id },
+            data: {
+              status: 'aprovado',
+              eventos: {
+                create: {
+                  tipo: 'pagamento.aprovado',
+                  conteudoJson: JSON.stringify({ status: 'aprovado' }),
+                },
+              },
+            },
+          });
+
+          resolve(pagamentoAtualizado);
+        } catch (error) {
+          reject(error);
+        }
+      }, 15000);
+    });
+  }
+
+  async rejeitarPagamento(id: string): Promise<any> {
     const pagamento = await this.prisma.pagamento.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!pagamento) {
       throw new Error('Pagamento não encontrado');
     }
 
-    // Simular confirmação usando o serviço fake
-    const resultadoConfirmacao = await this.pagamentoService.confirmarPagamento(id);
-
-    // Atualizar status no banco
-    await this.prisma.pagamento.update({
+    return this.prisma.pagamento.update({
       where: { id },
       data: {
-        status: resultadoConfirmacao.status,
+        status: 'recusado',
         eventos: {
           create: {
-            tipo: 'pagamento.simulado',
-            conteudoJson: JSON.stringify(resultadoConfirmacao)
-          }
-        }
-      }
+            tipo: 'pagamento.recusado',
+            conteudoJson: JSON.stringify({ status: 'recusado' }),
+          },
+        },
+      },
     });
-
-    return {
-      mensagem: 'Pagamento simulado com sucesso',
-      resultado: resultadoConfirmacao
-    };
   }
 } 

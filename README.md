@@ -219,6 +219,7 @@ curl -X DELETE "http://localhost:8000/api/metodos-pagamento/METHOD_ID?userId=123
 Esta API processa pagamentos usando os métodos de pagamento cadastrados.
 
 #### 1. Criar Pagamento
+O status inicial de um pagamento é sempre **pendente**.
 ```bash
 curl -X POST http://localhost:3000/api/pagamentos \
   -H "Content-Type: application/json" \
@@ -230,23 +231,19 @@ curl -X POST http://localhost:3000/api/pagamentos \
   }'
 ```
 
-#### 2. Processar Pagamento
+#### 2. Aprovar Pagamento
 ```bash
-curl -X POST http://localhost:3000/api/pagamentos/processar \
-  -H "Content-Type: application/json" \
-  -d '{
-    "idPagamento": "PAYMENT_ID"  # ID retornado pela API Node.js ao criar pagamento
-  }'
+curl -X POST http://localhost:3000/api/pagamentos/PAYMENT_ID/aprovar
 ```
 
-#### 3. Simular Confirmação de Pagamento
+#### 3. Rejeitar Pagamento
 ```bash
-curl -X POST http://localhost:3000/api/pagamentos/PAYMENT_ID/simular-confirmacao  # ID retornado pela API Node.js ao criar pagamento
+curl -X POST http://localhost:3000/api/pagamentos/PAYMENT_ID/rejeitar
 ```
 
 #### 4. Buscar Pagamento por ID
 ```bash
-curl http://localhost:3000/api/pagamentos/PAYMENT_ID  # ID retornado pela API Node.js ao criar pagamento
+curl http://localhost:3000/api/pagamentos/PAYMENT_ID
 ```
 
 ## Fluxo Típico de Uso
@@ -267,36 +264,17 @@ curl http://localhost:3000/api/pagamentos/PAYMENT_ID  # ID retornado pela API No
 O processamento de um pagamento segue estas etapas:
 
 1. **Criar Pagamento** (POST /api/pagamentos)
-   ```bash
-   curl -X POST http://localhost:3000/api/pagamentos \
-     -H "Content-Type: application/json" \
-     -d '{
-       "valor": 100.50,
-       "idMetodoPagamento": "METHOD_ID",
-       "idUsuario": "USER_ID",
-       "descricao": "Compra de produto"
-     }'
-   ```
    - Valida o método de pagamento
    - Cria o pagamento com status "pendente"
    - Retorna o ID do pagamento
 
-2. **Processar Pagamento** (POST /api/pagamentos/processar)
-   ```bash
-   curl -X POST http://localhost:3000/api/pagamentos/processar \
-     -H "Content-Type: application/json" \
-     -d '{
-       "idPagamento": "PAYMENT_ID"
-     }'
-   ```
-   - Confirma o pagamento com o serviço de pagamento
+2. **Aprovar ou Rejeitar o Pagamento**
+   - `POST /api/pagamentos/{id}/aprovar`
+   - `POST /api/pagamentos/{id}/rejeitar`
    - Atualiza o status para "aprovado" ou "recusado"
    - Registra o evento de confirmação
 
-3. **Consultar Status** (GET /api/pagamentos/PAYMENT_ID)
-   ```bash
-   curl http://localhost:3000/api/pagamentos/PAYMENT_ID
-   ```
+3. **Consultar Status** (GET /api/pagamentos/{id})
    - Retorna o status atual do pagamento
    - Inclui histórico de eventos
 

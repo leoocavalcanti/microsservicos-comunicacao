@@ -66,52 +66,9 @@ export class PagamentoController {
 
   /**
    * @swagger
-   * /api/pagamentos/processar:
+   * /api/pagamentos/{id}/aprovar:
    *   post:
-   *     summary: Processa um pagamento
-   *     tags: [Pagamentos]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - idPagamento
-   *             properties:
-   *               idPagamento:
-   *                 type: string
-   *                 description: ID do pagamento a ser processado
-   *     responses:
-   *       200:
-   *         description: Pagamento processado com sucesso
-   *       404:
-   *         description: Pagamento não encontrado
-   *       500:
-   *         description: Erro ao processar pagamento
-   */
-  async processarPagamento(req: Request, res: Response): Promise<void> {
-    try {
-      this.logger.info('Iniciando processamento de pagamento', { body: req.body });
-      const resultado = await this.pagamentoFacade.processarPagamento(req.body);
-      this.logger.info('Pagamento processado com sucesso', { resultado });
-      res.json(resultado);
-    } catch (error) {
-      this.logger.error('Erro ao processar pagamento', {
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
-        stack: error instanceof Error ? error.stack : undefined,
-        body: req.body
-      });
-      res.status(error instanceof Error && error.message.includes('não encontrado') ? 404 : 500)
-        .json({ erro: 'Erro ao processar pagamento' });
-    }
-  }
-
-  /**
-   * @swagger
-   * /api/pagamentos/{id}/simular-confirmacao:
-   *   post:
-   *     summary: Simula a confirmação de um pagamento
+   *     summary: Aprova um pagamento
    *     tags: [Pagamentos]
    *     parameters:
    *       - in: path
@@ -122,29 +79,70 @@ export class PagamentoController {
    *         description: ID do pagamento
    *     responses:
    *       200:
-   *         description: Simulação realizada com sucesso
+   *         description: Pagamento aprovado com sucesso
    *       404:
    *         description: Pagamento não encontrado
    *       500:
-   *         description: Erro ao simular confirmação
+   *         description: Erro ao aprovar pagamento
    */
-  async simularConfirmacaoPagamento(req: Request, res: Response): Promise<void> {
+  async aprovarPagamento(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      this.logger.info('Iniciando simulação de confirmação de pagamento', { id });
-      const resultado = await this.pagamentoFacade.simularConfirmacaoPagamento(id);
-      this.logger.info('Simulação de confirmação realizada com sucesso', { resultado });
+      this.logger.info('Iniciando aprovação de pagamento', { id });
+      const resultado = await this.pagamentoFacade.aprovarPagamento(id);
+      this.logger.info('Pagamento aprovado com sucesso', { resultado });
       res.json(resultado);
     } catch (error) {
-      this.logger.error('Erro ao simular confirmação', {
+      this.logger.error('Erro ao aprovar pagamento', {
         error: error instanceof Error ? error.message : 'Erro desconhecido',
         stack: error instanceof Error ? error.stack : undefined,
         id: req.params.id
       });
       res.status(error instanceof Error && error.message.includes('não encontrado') ? 404 : 500)
-        .json({ erro: 'Erro ao simular confirmação' });
+        .json({ erro: 'Erro ao aprovar pagamento' });
     }
   }
+
+  /**
+   * @swagger
+   * /api/pagamentos/{id}/rejeitar:
+   *   post:
+   *     summary: Rejeita um pagamento
+   *     tags: [Pagamentos]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID do pagamento
+   *     responses:
+   *       200:
+   *         description: Pagamento rejeitado com sucesso
+   *       404:
+   *         description: Pagamento não encontrado
+   *       500:
+   *         description: Erro ao rejeitar pagamento
+   */
+  async rejeitarPagamento(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      this.logger.info('Iniciando rejeição de pagamento', { id });
+      const resultado = await this.pagamentoFacade.rejeitarPagamento(id);
+      this.logger.info('Pagamento rejeitado com sucesso', { resultado });
+      res.json(resultado);
+    } catch (error) {
+      this.logger.error('Erro ao rejeitar pagamento', {
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined,
+        id: req.params.id
+      });
+      res.status(error instanceof Error && error.message.includes('não encontrado') ? 404 : 500)
+        .json({ erro: 'Erro ao rejeitar pagamento' });
+    }
+  }
+
+  
 
   /**
    * @swagger
