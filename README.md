@@ -284,15 +284,6 @@ O processamento de um pagamento segue estas etapas:
 - **aprovado**: Pagamento processado com sucesso
 - **recusado**: Pagamento processado mas não aprovado
 
-### Ambiente de Testes
-
-Para testes, o sistema usa um serviço fake que simula diferentes respostas baseado no número do cartão:
-
-- **4242424242424242**: Sempre aprova
-- **4000000000000002**: Sempre recusa
-- **4000000000000044**: Fica pendente
-- Outros números: Aprova por padrão
-
 ## Logs
 
 Os logs são armazenados em:
