@@ -38,6 +38,10 @@ app.use(requestLogger);
 app.use(express.json());
 
 // Rotas da API
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'UP', message: 'Serviço de pagamento está funcionando corretamente' });
+});
+
 app.use('/api/pagamentos', pagamentoRoutes);
 
 const startServer = async () => {
@@ -46,7 +50,7 @@ const startServer = async () => {
     await discoveryService.register(port);
     
     app.listen(port, () => {
-      logger.info(`Servidor rodando na porta ${port}`, {
+      logger.info(`Servidor iniciado na porta ${port}`, {
         port,
         environment: process.env.NODE_ENV || 'development',
         version: process.env.npm_package_version
