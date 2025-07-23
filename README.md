@@ -1,3 +1,33 @@
+
+# Documentação Técnica – Serviço de Pagamentos
+
+## Serviço de Pagamentos
+
+Disciplina:
+Análise e Projeto de Sistemas Orientados a Objetos
+
+Professor:
+Lucas Albertins
+
+Componentes da Equipe:
+
+Leonardo Cavalcanti
+leonardohenrique521@gmail.com
+
+Gabriel Barbosa
+gabriel.augusto@ufrpe.br
+
+Luis Eduardo
+luis.tgsilva@ufrpe.br
+
+Versão do Documento:
+1.0
+
+Data:
+23 de julho de 2025
+
+
+
 # Sistema de Pagamentos
 
 Este é um sistema de processamento de pagamentos composto por dois microsserviços:
